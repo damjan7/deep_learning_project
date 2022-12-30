@@ -29,24 +29,30 @@ class Linear_Layer(nn.Module):
         self.with_bias = bias
 
         # create a prior for the weights and biases using the Isotropic Gaussian prior
-        self.weight_prior = Isotropic_Gaussian(mu = torch.tensor(0.), sigma = torch.tensor(1.))
+        self.weight_prior = MultivariateDiagonalGaussian(
+            mu = torch.zeros(out_features, in_features), 
+            rho = torch.ones(out_features, in_features))
 
         if self.with_bias:
-            self.bias_prior = Isotropic_Gaussian(mu = torch.tensor(0.), sigma = torch.tensor(1.))
+            self.bias_prior = MultivariateDiagonalGaussian(
+                mu = torch.zeros(out_features),
+                rho = torch.ones(out_features))
+        else:
+            self.bias_prior = None
 
         
         # create a variational posterior for the weights and biases as Instance of  Multivariate Gaussian
         self.mu_weight = torch.nn.Parameter(torch.zeros(out_features, in_features))
-        self.sigma_weight = torch.nn.Parameter(torch.ones(out_features, in_features))
+        self.rho_weight = torch.nn.Parameter(torch.ones(out_features, in_features))
 
-        self.weight_posterior = Isotropic_Gaussian(self.mu_weight, self.sigma_weight)
+        self.weight_posterior = MultivariateDiagonalGaussian(self.mu_weight, self.rho_weight)
         
         if self.with_bias:
             self.mu_bias = torch.nn.Parameter(torch.zeros(out_features))
-            self.sigma_bias = torch.nn.Parameter(torch.ones(out_features))
-            self.bias_posterior = Isotropic_Gaussian(self.mu_bias, self.sigma_bias)
+            self.rho_bias = torch.nn.Parameter(torch.ones(out_features))
+            self.bias_posterior = MultivariateDiagonalGaussian(self.mu_bias, self.rho_bias)
         else:
-            self.register_parameter('bias', None)
+            self.bias_posterior = None
         
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -54,11 +60,9 @@ class Linear_Layer(nn.Module):
         Same procedure as explained in the paper of Blundell et al. (2015):
         use reparameterization trick to sample weights and biases from the variational posterior
         """
-        # usample random noise from the standard normal distribution
-        epsilon = torch.randn_like(self.weight_posterior.mu)
 
         # sample weights and biases from the variational posterior
-        weight = self.weight_posterior.mu + torch.multiply(epsilon, self.weight_posterior.sigma)
+        weight = self.weight_posterior.sample()
 
         # compute the log prior of the weights and biases
         log_prior = self.weight_prior.log_likelihood(weight)
@@ -68,8 +72,7 @@ class Linear_Layer(nn.Module):
 
         # adjust for the bias
         if self.with_bias:
-            epsilon = torch.randn_like(self.bias_posterior.mu)
-            bias = self.bias_posterior.mu + torch.multiply(epsilon, self.bias_posterior.sigma)
+            bias = self.bias_posterior.sample()
             log_prior += self.bias_prior.log_likelihood(bias)
             log_posterior += self.bias_posterior.log_likelihood(bias)
         else:
@@ -108,7 +111,10 @@ class Bayesian_Neural_Network(nn.Module):
             #self.layers.append(nn.ReLU(inplace=True))
 
         # create the output layer
-        self.layers.append(Linear_Layer(self.hidden_dims[-1], self.output_dim))
+        self.layers.append(Linear_Layer(self.hidden_dims[-1], self.output_dim)) 
+
+        # activation function
+        self.activation = nn.ReLU(inplace=True)
 
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -118,9 +124,9 @@ class Bayesian_Neural_Network(nn.Module):
         kl_divergence = torch.tensor(0.0)
         for ind, layer in enumerate(self.layers):
             x, kl = layer(x)
-            #kl_divergence += kl
+            kl_divergence += kl
             if ind < len(self.layers) - 1:
-                x = F.relu(x)
+                x = self.activation(x)
 
         return x, kl
 

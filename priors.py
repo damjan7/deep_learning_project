@@ -51,7 +51,7 @@ class Isotropic_Gaussian(Prior):
     """
     def __init__(self, mu: torch.Tensor, sigma: torch.Tensor):
         super(Isotropic_Gaussian, self).__init__()
-        #assert sigma > 0
+        # assert sigma > 0
         self.mu = mu
         self.sigma = sigma
 
@@ -65,7 +65,8 @@ class Isotropic_Gaussian(Prior):
         """
         Sample from the prior
         """
-        return dist.Normal(self.mu, self.sigma).sample()
+        eps = torch.randn_like(self.mu)
+        return self.mu + self.sigma * eps
 
 
 
@@ -77,31 +78,17 @@ class MultivariateDiagonalGaussian(Prior):
     This parameterizes the standard deviation via a parameter rho as
     sigma = softplus(rho).
     """
-    def __init__(self, mu: torch.Tensor, sigma: torch.Tensor):
+    def __init__(self, mu: torch.Tensor, rho: torch.Tensor):
         super(MultivariateDiagonalGaussian, self).__init__()  
         self.mu = mu
-        self.sigma = sigma
+        self.rho = rho
+        self.sigma = torch.log(1 + torch.exp(rho))
 
     def log_likelihood(self, values: torch.Tensor) -> torch.Tensor:
         # TODO: Implement this
-        sigma = self.sigma
-        mu = self.mu
-        sigma_resized = torch.reshape(sigma, (-1,))
-        mu_resized = torch.reshape(mu, (-1,))
-        values_resized = torch.reshape(values, (-1,))
-        COV = torch.diag(sigma_resized)
-        p = torch.tensor(sigma_resized.size())  # dimension of diagonal matrix
-        m = torch.tensor(values_resized.size())  # number of samples (=X)
-
-        loglik = -m * p / 2 - m / 2 + torch.log(torch.linalg.det(COV)) - 1 / 2 * (values_resized - mu_resized).t() * torch.inverse(COV) * (values_resized - mu_resized)
-        return loglik
+        return dist.Normal(self.mu, self.sigma).log_prob(values).sum()
 
     def sample(self) -> torch.Tensor:
         # TODO: Implement this
-        sigma = self.sigma
-        mu = self.mu
-        sigma_resized = torch.reshape(sigma, (-1,))
-        mu_resized = torch.reshape(mu, (-1,))
-        COV = torch.diag(sigma_resized)
-        val = torch.normal(mu_resized, COV)
-        return val
+        eps = torch.randn_like(self.mu)
+        return self.mu + self.sigma * eps
