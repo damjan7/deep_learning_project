@@ -22,21 +22,24 @@ class Linear_Layer(nn.Module):
     Bayesian Linear Layer that will be used as a building block for the Bayesian Neural Network
     https://github.com/ratschlab/bnn_priors/blob/main/bnn_priors/models/layers.py
     """ 
-    def __init__(self, in_features, out_features, bias = True):
+    def __init__(self, in_features, out_features, bias = True, Temperature = 1.0):
         super().__init__()
         self.in_features = in_features
         self.out_features = out_features
         self.with_bias = bias
+        self.Temperature = Temperature
 
         # create a prior for the weights and biases using the Isotropic Gaussian prior
         self.weight_prior = MultivariateDiagonalGaussian(
             mu = torch.zeros(out_features, in_features), 
-            rho = torch.ones(out_features, in_features))
+            rho = torch.ones(out_features, in_features),
+            Temperature = 1.0)
 
         if self.with_bias:
             self.bias_prior = MultivariateDiagonalGaussian(
                 mu = torch.zeros(out_features),
-                rho = torch.ones(out_features))
+                rho = torch.ones(out_features), 
+                Temperature = 1.0)
         else:
             self.bias_prior = None
 
@@ -45,12 +48,12 @@ class Linear_Layer(nn.Module):
         self.mu_weight = torch.nn.Parameter(torch.zeros(out_features, in_features))
         self.rho_weight = torch.nn.Parameter(torch.ones(out_features, in_features))
 
-        self.weight_posterior = MultivariateDiagonalGaussian(self.mu_weight, self.rho_weight)
+        self.weight_posterior = MultivariateDiagonalGaussian(self.mu_weight, self.rho_weight, Temperature = self.Temperature)
         
         if self.with_bias:
             self.mu_bias = torch.nn.Parameter(torch.zeros(out_features))
             self.rho_bias = torch.nn.Parameter(torch.ones(out_features))
-            self.bias_posterior = MultivariateDiagonalGaussian(self.mu_bias, self.rho_bias)
+            self.bias_posterior = MultivariateDiagonalGaussian(self.mu_bias, self.rho_bias, Temperature = self.Temperature)
         else:
             self.bias_posterior = None
         
@@ -92,26 +95,27 @@ class Bayesian_Neural_Network(nn.Module):
     """
     Bayesian Neural Network that will be trained using the BNN implementation
     """ 
-    def __init__(self, input_dim, output_dim, hidden_dims):
+    def __init__(self, input_dim, output_dim, hidden_dims, Temperature = 1.0):
         super().__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.hidden_dims = hidden_dims
+        self.Temperature = Temperature
 
         # create the layers of the network
         self.layers = nn.ModuleList()
 
         # create the input layer
-        self.layers.append(Linear_Layer(self.input_dim, self.hidden_dims[0]))
+        self.layers.append(Linear_Layer(self.input_dim, self.hidden_dims[0], Temperature = self.Temperature))
         #self.layers.append(nn.ReLU(inplace=True))
 
         # create the hidden layers
         for i in range(len(self.hidden_dims) - 1):
-            self.layers.append(Linear_Layer(self.hidden_dims[i], self.hidden_dims[i + 1]))
+            self.layers.append(Linear_Layer(self.hidden_dims[i], self.hidden_dims[i + 1], Temperature = self.Temperature))
             #self.layers.append(nn.ReLU(inplace=True))
 
         # create the output layer
-        self.layers.append(Linear_Layer(self.hidden_dims[-1], self.output_dim)) 
+        self.layers.append(Linear_Layer(self.hidden_dims[-1], self.output_dim, Temperature=self.Temperature)) 
 
         # activation function
         self.activation = nn.ReLU(inplace=True)

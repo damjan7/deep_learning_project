@@ -59,7 +59,7 @@ class Isotropic_Gaussian(Prior):
         """
         Compute the log-likelihood for the given x values
         """
-        return dist.Normal(self.mu, self.sigma).log_prob(x).sum()
+        return dist.Normal(self.mu, self.sigma).log_prob(x).sum() 
 
     def sample(self) -> torch.Tensor:
         """
@@ -78,15 +78,16 @@ class MultivariateDiagonalGaussian(Prior):
     This parameterizes the standard deviation via a parameter rho as
     sigma = softplus(rho).
     """
-    def __init__(self, mu: torch.Tensor, rho: torch.Tensor):
+    def __init__(self, mu: torch.Tensor, rho: torch.Tensor, Temperature: float = 1.0):
         super(MultivariateDiagonalGaussian, self).__init__()  
         self.mu = mu
         self.rho = rho
         self.sigma = torch.log(1 + torch.exp(rho))
+        self.Temperature = Temperature
 
     def log_likelihood(self, values: torch.Tensor) -> torch.Tensor:
         # TODO: Implement this
-        return dist.Normal(self.mu, self.sigma).log_prob(values).sum()
+        return dist.Normal(self.mu, self.sigma).log_prob(values).sum() / self.Temperature
 
     def sample(self) -> torch.Tensor:
         # TODO: Implement this
