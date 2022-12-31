@@ -69,7 +69,6 @@ class Isotropic_Gaussian(Prior):
         return self.mu + self.sigma * eps
 
 
-
 class MultivariateDiagonalGaussian(Prior):
     """
     Multivariate diagonal Gaussian distribution,
@@ -93,3 +92,22 @@ class MultivariateDiagonalGaussian(Prior):
         # TODO: Implement this
         eps = torch.randn_like(self.mu)
         return self.mu + self.sigma * eps
+
+
+class LaplacePrior(Prior):
+    """
+    Laplace Prior
+    """
+    def __init__(self, mu: torch.Tensor, rho: torch.Tensor, Temperature: float=1.0):
+        super().__init__()
+        self.mu = mu
+        self.rho = rho
+        self.rho = torch.log(1 + torch.exp(rho))  # transform rho
+        self.Temperature = Temperature
+
+    def log_likelihood(self, values: torch.Tensor) -> torch.Tensor:
+        return dist.Laplace(self.mu, self.rho).log_prob(values).sum() / self.Temperature
+
+    def sample(self) -> torch.Tensor:
+        eps = torch.randn_like(self.mu)
+        return self.mu + self.rho * eps
