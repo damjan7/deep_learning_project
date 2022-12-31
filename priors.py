@@ -28,7 +28,7 @@ class Prior(nn.Module, abc.ABC):
         Compute the log-likelihood for the given x values
         """
         pass
-    
+
     @abc.abstractmethod
     def sample(self) -> torch.Tensor:
         """
@@ -59,7 +59,7 @@ class Isotropic_Gaussian(Prior):
         """
         Compute the log-likelihood for the given x values
         """
-        return dist.Normal(self.mu, self.sigma).log_prob(x).sum() 
+        return dist.Normal(self.mu, self.sigma).log_prob(x).sum()
 
     def sample(self) -> torch.Tensor:
         """
@@ -78,7 +78,7 @@ class MultivariateDiagonalGaussian(Prior):
     sigma = softplus(rho).
     """
     def __init__(self, mu: torch.Tensor, rho: torch.Tensor, Temperature: float = 1.0):
-        super(MultivariateDiagonalGaussian, self).__init__()  
+        super(MultivariateDiagonalGaussian, self).__init__()
         self.mu = mu
         self.rho = rho
         self.sigma = torch.log(1 + torch.exp(rho))
@@ -109,5 +109,41 @@ class LaplacePrior(Prior):
         return dist.Laplace(self.mu, self.rho).log_prob(values).sum() / self.Temperature
 
     def sample(self) -> torch.Tensor:
-        eps = torch.randn_like(self.mu)
-        return self.mu + self.rho * eps
+        return dist.Laplace(self.mu, self.loc).sample(self.mu)  # sample from laplace
+
+
+class StudentTPrior(Prior):
+    """
+    Student-T Prior
+    """
+    def __init__(self, mu: torch.Tensor, rho: torch.Tensor, Temperature: float= 1.0, df: torch.Tensor = 10):
+        super().__init__()
+        self.df = df
+        self.mu = mu
+        self.rho = rho
+        self.rho = torch.log(1 + torch.exp(rho))  # transform rho
+        self.Temperature = Temperature
+
+    def log_likelihood(self, values: torch.Tensor) -> torch.Tensor:
+        return dist.StudentT(self.df, self.mu, self.rho).log_prob(values).sum() / self.Temperature
+
+    def sample(self) -> torch.Tensor:
+        return dist.StudentT(self.df, self.mu, self.loc).sample(self.mu)  # sample from student-T
+
+
+
+### NOT USED
+class Wishart(Prior):
+    def __init__(self, mu: torch.Tensor, rho: torch.Tensor, Temperature: float= 1.0, df: torch.Tensor = 10):
+        super().__init__()
+        self.df = df
+        self.mu = mu
+        self.rho = rho
+        self.rho = torch.log(1 + torch.exp(rho))  # transform rho
+        self.Temperature = Temperature
+
+    def log_likelihood(self, values: torch.Tensor) -> torch.Tensor:
+        return dist.StudentT(self.df, self.mu, self.rho).log_prob(values).sum() / self.Temperature
+
+    def sample(self) -> torch.Tensor:
+        return dist.StudentT(self.df, self.mu, self.loc).sample(self.mu)  # sample from student-T

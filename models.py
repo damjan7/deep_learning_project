@@ -30,13 +30,13 @@ class Linear_Layer(nn.Module):
         self.Temperature = Temperature
 
         # create a prior for the weights and biases using the Isotropic Gaussian prior
-        self.weight_prior = LaplacePrior(
+        self.weight_prior = StudentTPrior(
             mu = torch.zeros(out_features, in_features), 
             rho = torch.ones(out_features, in_features),
             Temperature = 1.0)
 
         if self.with_bias:
-            self.bias_prior = LaplacePrior(
+            self.bias_prior = StudentTPrior(
                 mu = torch.zeros(out_features),
                 rho = torch.ones(out_features), 
                 Temperature = 1.0)
