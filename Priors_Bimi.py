@@ -1,8 +1,9 @@
 ## Uniform at the middle, Laplace at the sides, 50% weight on uniform, 25% weight each side.
 
-#   if x < -1:              f(x) = 0.67957*exp(x)
+#   a = e/4
+#   if x < -1:              f(x) = e/4*exp(x)
 #   if -1 <= x <= 1:        f(x) = 1/4
-#   if x > 1:               f(x) = 0.67957*exp(-x)
+#   if x > 1:               f(x) = e/4*exp(-x)
 
 ##
 
