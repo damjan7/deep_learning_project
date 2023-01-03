@@ -21,6 +21,8 @@ class Linear_Layer(nn.Module):
     """
     Bayesian Linear Layer that will be used as a building block for the Bayesian Neural Network
     https://github.com/ratschlab/bnn_priors/blob/main/bnn_priors/models/layers.py
+
+    I USE THIS FOR GAUSSIAN MIXTURE AS IT HAS ONE COMPONENT MORE
     """ 
     def __init__(self, in_features, out_features, bias = True, Temperature = 1.0):
         super().__init__()
@@ -30,15 +32,17 @@ class Linear_Layer(nn.Module):
         self.Temperature = Temperature
 
         # create a prior for the weights and biases using the Isotropic Gaussian prior
-        self.weight_prior = SpikeSlabPrior(
+        self.weight_prior = GaussianMixture(
             mu = torch.zeros(out_features, in_features), 
-            rho = torch.ones(out_features, in_features),
+            rho1 = torch.ones(out_features, in_features),
+            rho2 = torch.full((out_features, in_features), 3),
             Temperature = 1.0)
 
         if self.with_bias:
-            self.bias_prior = SpikeSlabPrior(
+            self.bias_prior = GaussianMixture(
                 mu = torch.zeros(out_features),
-                rho = torch.ones(out_features), 
+                rho1 = torch.ones(out_features),
+                rho2 = torch.full((out_features,  ), 3),
                 Temperature = 1.0)
         else:
             self.bias_prior = None
@@ -56,6 +60,77 @@ class Linear_Layer(nn.Module):
             self.bias_posterior = MultivariateDiagonalGaussian(self.mu_bias, self.rho_bias, Temperature = self.Temperature)
         else:
             self.bias_posterior = None
+
+    class Linear_Layer(nn.Module):
+        """
+        Bayesian Linear Layer that will be used as a building block for the Bayesian Neural Network
+        https://github.com/ratschlab/bnn_priors/blob/main/bnn_priors/models/layers.py
+        """
+
+        def __init__(self, in_features, out_features, bias=True, Temperature=1.0):
+            super().__init__()
+            self.in_features = in_features
+            self.out_features = out_features
+            self.with_bias = bias
+            self.Temperature = Temperature
+
+            # create a prior for the weights and biases using the Isotropic Gaussian prior
+            self.weight_prior = InverseGamma(
+                shape=torch.full((out_features, in_features), 3),
+                rate=torch.full((out_features, in_features), 0.5),
+                Temperature=1.0)
+
+            if self.with_bias:
+                self.bias_prior = InverseGamma(
+                    shape=torch.full((out_features, ), 3),
+                    rate=torch.full((out_features, ), 0.5),
+                    Temperature=1.0)
+            else:
+                self.bias_prior = None
+
+            # create a variational posterior for the weights and biases as Instance of  Multivariate Gaussian
+            self.mu_weight = torch.nn.Parameter(torch.zeros(out_features, in_features))
+            self.rho_weight = torch.nn.Parameter(torch.ones(out_features, in_features))
+
+            self.weight_posterior = MultivariateDiagonalGaussian(self.mu_weight, self.rho_weight,
+                                                                 Temperature=self.Temperature)
+
+            if self.with_bias:
+                self.mu_bias = torch.nn.Parameter(torch.zeros(out_features))
+                self.rho_bias = torch.nn.Parameter(torch.ones(out_features))
+                self.bias_posterior = MultivariateDiagonalGaussian(self.mu_bias, self.rho_bias,
+                                                                   Temperature=self.Temperature)
+            else:
+                self.bias_posterior = None
+
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
+            """
+            Same procedure as explained in the paper of Blundell et al. (2015):
+            use reparameterization trick to sample weights and biases from the variational posterior
+            """
+
+            # sample weights and biases from the variational posterior
+            weight = self.weight_posterior.sample()
+
+            # compute the log prior of the weights and biases
+            log_prior = self.weight_prior.log_likelihood(weight)
+
+            # compute the log variational posterior of the weights and biases
+            log_posterior = self.weight_posterior.log_likelihood(weight)
+
+            # adjust for the bias
+            if self.with_bias:
+                bias = self.bias_posterior.sample()
+                log_prior += self.bias_prior.log_likelihood(bias)
+                log_posterior += self.bias_posterior.log_likelihood(bias)
+            else:
+                bias = None
+
+            kl_divergence = log_posterior - log_prior
+
+            # compute the output of the layer
+            output = F.linear(x, weight, bias)
+            return output, kl_divergence
         
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

@@ -7,6 +7,7 @@ import torch.optim
 import torch.utils.data
 import torch.distributions as dist
 import abc
+from scipy.special import gamma
 
 
 
@@ -133,6 +134,9 @@ class StudentTPrior(Prior):
 
 
 
+def spike_slab_lik(theta, values):
+    pass
+
 class SpikeSlabPrior(Prior):
     """
     theta is the parameter for the bernoulli distribution
@@ -167,6 +171,63 @@ class SpikeSlabPrior(Prior):
         rvs_normal = self.mu + self.sig * eps
         return rvs_normal * bern_rvs  # element-wise mat mul
 
+
+class GaussianMixture(Prior):
+    """
+    Mixture of 2 gaussians with same mean but different variances
+    """
+    def __init__(self,  mu: torch.Tensor, rho1: torch.Tensor, rho2: torch.Tensor, mixing_coef: float=0.7 ,Temperature: float = 1.0):
+        super().__init__()
+        self.mu = mu
+        self.rho1 = rho1
+        self.rho2 = rho2
+        self.sig1 = torch.log(1 + torch.exp(rho1))  # transform rho
+        self.sig2 = torch.log(1 + torch.exp(rho2))  # transform rho
+        self.mixing_coef = mixing_coef
+        self.Temperature = Temperature
+
+    def log_likelihood(self, values: torch.Tensor) -> torch.Tensor:
+        p1 = dist.Normal(self.mu, self.sig1).log_prob(values)
+        p2 = dist.Normal(self.mu, self.sig2).log_prob(values)
+        log_lik = (p1 * self.mixing_coef + p2 * (1-self.mixing_coef)).sum() / self.Temperature
+        return log_lik
+
+    def sample(self) -> torch.Tensor:
+        eps = torch.randn_like(self.mu)
+        sample1 = self.mu + self.sig1 * eps
+        eps = torch.randn_like(self.mu)
+        sample2 = self.mu + self.sig2 * eps
+        return sample1 * self.mixing_coef + sample2 * (1-self.mixing_coef)
+
+
+class InverseGamma(Prior):
+    """ Inverse Gamma distribution """
+    def __init__(self, shape: torch.Tensor, rate: torch.Tensor, Temperature: float = 1.0):
+        """
+        shape: shape parameters of the distribution
+        rate: rate parameters of the distribution
+        """
+        self.shape = shape
+        self.rate = rate
+        self.Temperature = Temperature
+
+    def log_likelihood(self, values: torch.Tensor) -> torch.Tensor:
+        """
+        Computes the value of the predictive log likelihood at the target value
+        Args:
+            target: Torch tensor of floats, point(s) to evaluate the logprob
+        Returns:
+            loglike: float, the log likelihood
+        """
+        x = (self.rate**self.shape) / gamma(self.shape)
+        y = values**(-self.shape - 1)
+        z = torch.exp(-self.rate / values)
+        return torch.log(x * y * z)
+
+    def sample(self) -> torch.Tensor:
+        # sample from gamma and return 1/x
+        x = dist.Gamma(self.shape, self.rate).sample()
+        return 1/x
 
 
 ### NOT USED
