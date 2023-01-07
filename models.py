@@ -86,7 +86,14 @@ class Linear_Layer(nn.Module):
         
         # compute the output of the layer
         output = F.linear(x, weight, bias)
-        return output, kl_divergence
+
+        # save weights and biases for later use
+        if self.with_bias:
+            # concatenate the weights and biases
+            self.weights = torch.cat((weight.flatten(), bias.squeeze()), dim = 0)
+
+
+        return output, kl_divergence, self.weights
 
 
 
@@ -125,14 +132,16 @@ class Bayesian_Neural_Network(nn.Module):
         """
         Forward pass of the network
         """
+        weights = []
         kl_divergence = torch.tensor(0.0)
         for ind, layer in enumerate(self.layers):
-            x, kl = layer(x)
+            x, kl, w = layer(x)
             kl_divergence += kl
+            weights.append(w)
             if ind < len(self.layers) - 1:
                 x = self.activation(x)
 
-        return x, kl
+        return x, kl, weights
 
 
     def predict(self, x: torch.Tensor) -> torch.Tensor:
