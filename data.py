@@ -20,6 +20,10 @@ class Data:
             self.trainset = torchvision.datasets.MNIST(root="data", train=True, download=True, transform=self.transforms)
             self.testset = torchvision.datasets.MNIST(root="data", train=False, download=True, transform=self.transforms)
 
+        elif dataset == "FashionMNIST":
+            self.trainset = torchvision.datasets.FashionMNIST(root="data", train=True, download=True, transform=self.transforms)
+            self.testset = torchvision.datasets.FashionMNIST(root="data", train=False, download=True, transform=self.transforms)
+
 
         x_train = self.trainset.data.reshape(-1, 28*28)/255.
         y_train = self.trainset.targets
