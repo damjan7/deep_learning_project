@@ -53,6 +53,7 @@ class BNN_MCMC:
 
         # Set optimizer
         self.optimizer = SGLD(self.network.parameters(), lr=self.learning_rate, num_data=self.batch_size)
+        self.optimizer = SGD(self.network.parameters(), lr=self.learning_rate)
 
         # Scheduler for polynomially decreasing learning rates
         self.scheduler = PolynomialLR(self.optimizer, total_iters = self.num_epochs, power = 0.5)
@@ -90,7 +91,7 @@ class BNN_MCMC:
                 loss = N/n*F.nll_loss(F.log_softmax(current_logits, dim=1), batch_y) - log_prior#/#len(param_flat)
 
                 # Backpropagate to get the gradients
-                loss.backward()
+                loss.backward(retain_graph=True)
 
                 # Update the weights
                 self.optimizer.step()
