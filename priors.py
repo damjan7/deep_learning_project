@@ -36,7 +36,6 @@ class Isotropic_Gaussian(Prior):
         self.name = "Isotropic Gaussian"
 
     def log_likelihood(self, values: torch.Tensor) -> torch.Tensor:
-        values = torch.tensor(values)
         return dist.Normal(self.loc, self.scale).log_prob(values).sum() / self.Temperature
 
     def sample(self, n):
@@ -90,7 +89,6 @@ class StudentT_prior(Prior):
         self.name = "Student-T"
 
     def log_likelihood(self, values: torch.Tensor) -> torch.Tensor:
-        values = torch.tensor(values)
         return dist.StudentT(self.df, self.loc, self.scale).log_prob(values).sum() / self.Temperature
 
     def sample(self, n):
@@ -111,7 +109,6 @@ class Laplace_prior(Prior):
         self.name = "Laplace"
 
     def log_likelihood(self, values: torch.Tensor) -> torch.Tensor:
-        values = torch.tensor(values)
         return dist.Laplace(self.loc, self.scale).log_prob(values).sum() / self.Temperature
 
     def sample(self, n) -> torch.Tensor:
@@ -137,7 +134,6 @@ class Gaussian_Mixture(Prior):
         self.name = "Gaussian Mixture"
 
     def log_likelihood(self, values: torch.Tensor) -> torch.Tensor:
-        values = torch.tensor(values)
         p1 = dist.Normal(self.loc1, self.scale1).log_prob(values)
         p2 = dist.Normal(self.loc2, self.scale2).log_prob(values)
         log_lik = (p1 * self.mixing_coef + p2 * (1-self.mixing_coef)).sum() / self.Temperature
@@ -253,7 +249,6 @@ class GaussianSpikeNSlab(Prior):
         self.spike_n_slab = dist.MixtureSameFamily(mix, comp) 
 
     def log_likelihood(self, values: torch.Tensor) -> torch.Tensor:
-        values = torch.tensor(values)
         return self.spike_n_slab.log_prob(values).sum() / self.Temperature
 
     def sample(self,n) -> torch.Tensor:
@@ -283,7 +278,6 @@ class MixedLaplaceUniform(Prior):
         self.name = "Mixed Laplace and Uniform"
         
     def log_likelihood(self, values: torch.tensor) -> torch.tensor:
-        values = torch.tensor(values)
         log_likelihoods = torch.where(values < -1, values + torch.log(self.a), torch.where(values <= 1, torch.tensor(np.log(1/4)), -values + torch.log(self.a)))
         return log_likelihoods.sum() / self.Temperature
 

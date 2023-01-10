@@ -53,7 +53,6 @@ class BNN_MCMC:
 
         # Set optimizer
         self.optimizer = SGLD(self.network.parameters(), lr=self.learning_rate, num_data=self.batch_size)
-        self.optimizer = SGD(self.network.parameters(), lr=self.learning_rate)
 
         # Scheduler for polynomially decreasing learning rates
         self.scheduler = PolynomialLR(self.optimizer, total_iters = self.num_epochs, power = 0.5)
@@ -80,15 +79,18 @@ class BNN_MCMC:
                 # Perform forward pass
                 current_logits = self.network(batch_x)
 
-                # Calculate log_likelihood of weights for a given prior
+                # Compute the NLL
+                nll = N/n*F.nll_loss(F.log_softmax(current_logits, dim=1), batch_y)
 
-                parameters = self.network.state_dict()     # extract weights from network
-                param_values = list(parameters.values())    # list weights
-                param_flat = np.concatenate([v.flatten() for v in param_values])    # flattern
-                log_prior = self.prior.log_likelihood(param_flat)              # calculate log_lik
+                log_prior = 0
+                for name, param in self.network.named_parameters():
+                    if param.requires_grad:
+                        log_prior += self.prior.log_likelihood(param).sum()
+                
 
                 # Calculate the loss
-                loss = N/n*F.nll_loss(F.log_softmax(current_logits, dim=1), batch_y) - log_prior#/#len(param_flat)
+                #loss = N/n*F.nll_loss(F.log_softmax(current_logits, dim=1), batch_y) - log_prior
+                loss = nll - log_prior
 
                 # Backpropagate to get the gradients
                 loss.backward(retain_graph=True)
@@ -102,7 +104,7 @@ class BNN_MCMC:
                     current_accuracy = (current_logits.argmax(axis=1) == batch_y).float().mean()
                     progress_bar.set_postfix(loss=loss.item(), acc=current_accuracy.item(),
                     nll_loss=N/n*F.nll_loss(F.log_softmax(current_logits, dim=1), batch_y).item(),
-                    log_prior_normalized = - log_prior.item()/len(param_flat),
+                    log_prior_normalized = - log_prior.item(),
                     lr = self.optimizer.param_groups[0]['lr'])
 
             # Decrease lr based on scheduler
