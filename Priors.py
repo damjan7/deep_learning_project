@@ -26,16 +26,30 @@ class Prior:
 """ Gaussian """
 
 class IsotropicGaussian(Prior):
-    def __init__(self, mean=0, std=1):
-        super(IsotropicGaussian,self).__init__()
+    def __init__(self, mean=0, std=1, Temperature: float=1.0):
         self.mean = mean
         self.std = std
+        self.Temperature = Temperature
 
     def sample(self, n):
         return np.random.normal(self.mean, self.std, size=n)
 
     def log_likelihood(self, weights):
-        return Normal(self.mean, self.std).log_prob(torch.tensor(weights)).sum()
+        weights_detached_with_grad = weights.clone().detach().requires_grad_(True)
+        return Normal(self.mean, self.std).log_prob(weights_detached_with_grad).sum() / self.Temperature
+
+
+class ISOGaussian(nn.Module):
+    def __init__(self, mean=0, std=1, Temperature: float=1.0):
+        self.mean = mean
+        self.std = std
+        self.Temperature = Temperature
+
+    def sample(self, n):
+        return np.random.normal(self.mean, self.std, size=n)
+
+    def log_likelihood(self, weights):
+        return Normal(self.mean, self.std).log_prob(weights).sum() / self.Temperature
 
 
 """ Student-T """
@@ -142,55 +156,26 @@ class GaussianMixture(Prior):
 
 #   a = e/4
 
+
+
+""" Mixed Laplace Uniform, maybe computational advantage """
+
+
 class MixedLaplaceUniform(Prior):
-    def __init__(self):
-        self.a = np.exp(1)/4
-
-    def sample(self, size=1) -> torch.tensor:
-        """Generates samples from the mixed probability distribution."""
-        samples = np.zeros(size)
-        for i in range(size):
-            u = np.random.uniform(0,1)
-            if u < 1/4:
-                samples[i] = np.log(u/self.a)   # Solved CDF to sample x 
-            elif u <= 3/4:
-                samples[i] = (u - 1/4)*4 - 1            # Solved CDF to sample x
-            else:
-                b = 1/np.exp(1) - ((u-0.75)/self.a)
-                c = 1/b
-                samples[i] = np.log(c)
-        return torch.tensor(samples)
-        
-    def log_likelihood(self, values: torch.tensor) -> torch.tensor:
-        log_values = []
-        for value in values:
-            if value < -1:
-                val = value + np.log(self.a)
-                log_values.append(val)
-            elif value <= 1:
-                val = torch.tensor(np.log(1/4))
-                log_values.append(val)
-            else:
-                val = -value +np.log(self.a)
-                log_values.append(val)
-
-        return sum(log_values)
-
-
-
-""" Same Mixed Laplace Uniform, maybe computational advantage """
-
-
-class MixedLU(Prior):
-    def __init__(self):
+    def __init__(self, Temperature:float=1.0):
         self.a = torch.exp(torch.tensor(1))/4
+        self.Temperature = Temperature
 
     def sample(self, size=1) -> torch.tensor:
         """Generates samples from the mixed probability distribution."""
         u = torch.rand(size)
-        samples = torch.where(u < 1/4, torch.log(u/self.a), torch.where(u <= 3/4, (u - 1/4)*4 - 1, -torch.log((1/self.a - (u-0.75)/self.a)/(1/self.a))))
+        first_case = torch.log(u/self.a)
+        second_case = (u - 1/4)*4 - 1
+        third_case = torch.log(1/(1/np.exp(1) - ((u-0.75)/self.a)))
+        samples = torch.where(u < 1/4, first_case, 
+                              torch.where(u <= 3/4, second_case, third_case))
         return samples
         
     def log_likelihood(self, values: torch.tensor) -> torch.tensor:
         log_likelihoods = torch.where(values < -1, values + torch.log(self.a), torch.where(values <= 1, torch.tensor(np.log(1/4)), -values + torch.log(self.a)))
-        return log_likelihoods.sum()
+        return log_likelihoods.sum() / self.Temperature
