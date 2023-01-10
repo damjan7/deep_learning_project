@@ -7,6 +7,8 @@ import numpy as np
 from collections import OrderedDict
 from typing import Sequence, Optional, Callable, Tuple, Dict, Union
 import typing
+from torch.optim import SGD, RMSprop, Adam
+import sys
 
 def dot(a, b):
     "return (a*b).sum().item()"
@@ -178,3 +180,31 @@ class SGLD(torch.optim.Optimizer):
             # ^(1/2) to form the preconditioner,
             # ^(-1/2) because we want the preconditioner's inverse square root.
             self.state[p]['preconditioner'] = (new_M / min_s)**(-1/4)
+
+
+class SGLD_old(SGD):
+    """Implementation of SGLD algorithm.
+    References
+    ----------
+        
+    """
+    @torch.no_grad()
+    def step(self, closure=None):
+        """See `torch.optim.step’."""
+        loss = super().step(closure)
+        for group in self.param_groups:
+            weight_decay = group['weight_decay']
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+                grad_p = p.grad.data
+                if weight_decay!=0:
+                    grad_p.add_(alpha=weight_decay,other=p.data)
+                langevin_noise = torch.randn_like(p.data).mul_(group['lr']**0.5)*0.1 #  use weight 0.1 to balance the noise
+                p.data.add_(grad_p,alpha=-0.5*group['lr'])
+                if torch.isnan(p.data).any(): 
+                    exit('Exist NaN param after SGLD, Try to tune the parameter')
+                if torch.isinf(p.data).any(): 
+                    exit('Exist Inf param after SGLD, Try to tune the parameter')
+                p.data.add_(langevin_noise)
+        return loss
