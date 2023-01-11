@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.distributions as dist
 from scipy.special import gamma
+import math
 
 
 
@@ -194,24 +195,26 @@ class Normal_Inverse_Gamma(Prior):
         self.name = "Normal Inverse Gamma"
     
 
-    def log_likelihood(self, values: torch.Tensor, var: torch.Tensor) -> torch.Tensor:
+    def log_likelihood(self, values: torch.Tensor) -> torch.Tensor:
         """
         Compute the likelihood of the inverse gamma distribution for an x and a variance
         """
         # manually compute the likelihood
-        sigma = torch.sqrt(var)
+        var = torch.var(values)
 
-        log_like = 0.5 * torch.log(self.lam) - torch.log(sigma*torch.sqrt(2*torch.tensor(np.pi))) \
-                - self.alpha * torch.log(self.beta) + torch.lgamma(self.alpha) \
-                - (self.alpha + 1) * torch.log(var) - (2*self.beta + self.lam * (values - self.mu)**2) / (2*var)
+        log_like = torch.xlogy(0.5, self.lam / (2 * math.pi * var)) + \
+                    torch.xlogy(self.alpha,self.beta) - \
+                    torch.lgamma(self.alpha) - \
+                    torch.xlogy(self.alpha + 1,var) - \
+                    (2*self.beta + self.lam * (values - self.loc)**2) / (2 * var)
         
-        return torch.sum(log_like)
+        return log_like.mean() / self.Temperature
 
 
     def sample(self, n) -> torch.Tensor:
         # sample variance from inverse gamma and sample x from normal given the variance
-        var = Inverse_Gamma(self.alpha, self.beta).sample((n,))
-        x = dist.Normal(self.mu, torch.sqrt(var/self.lam)).sample((n,))
+        var = torch.div(1, dist.Gamma(self.alpha, self.beta).sample((1,)))
+        x = dist.Normal(self.loc, torch.sqrt(var/self.lam)).sample((n,))
         return x, var
 
 
@@ -227,7 +230,7 @@ class GaussianSpikeNSlab(Prior):
     p_theta(x) = theta * p_spike(x) + (1-theta) * p_slab(x)
     """
 
-    def __init__(self, loc_slab: float = 0, scale_slab: float = 1, loc_spike: float = 0, scale_spike: float = 1e-32, theta: float = 0.8, Temperature: float = 1.0):
+    def __init__(self, loc_slab: float = 0, scale_slab: float = 1, loc_spike: float = 0, scale_spike: float = 1e-16, theta: float = 0.8, Temperature: float = 1.0):
         """
         loc_slab: mean of the normal distribution
         scale_slab: standard deviation of the normal distribution

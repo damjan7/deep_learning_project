@@ -30,6 +30,7 @@ from SGLD import SGLD
 class BNN_MCMC:
     def __init__(self, dataset_train, network, prior,
      num_epochs = 300, max_size = 100, burn_in = 100, lr = 1e-3, sample_interval = 1):
+        super(BNN_MCMC, self).__init__()
 
         # Hyperparameters and general parameters
         self.learning_rate = lr
@@ -82,6 +83,7 @@ class BNN_MCMC:
                 # Compute the NLL
                 nll = N/n*F.nll_loss(F.log_softmax(current_logits, dim=1), batch_y)
 
+                # Compute the log prior
                 log_prior = 0
                 for name, param in self.network.named_parameters():
                     if param.requires_grad:
@@ -159,3 +161,23 @@ class BNN_MCMC:
 
         calib_err = calibration_error(class_probs, y_test, n_bins = 30, task = "multiclass", norm="l1", num_classes=10)
         return calib_err #print(f'Calibration Error: {calib_err.item():.4f}')
+
+    def get_posterior_stats(self):
+        self.network.eval()
+
+        # get weights from all models
+        param_flat_all = []
+        for model in self.model_sequence:
+            parameters = model.state_dict()
+            param_values = list(parameters.values())
+            param_flat = torch.cat([v.flatten() for v in param_values])
+            param_flat_all.append(param_flat.flatten())
+
+        param_flat_all = torch.cat(param_flat_all)
+
+        # get mean and variance
+        mean = torch.mean(param_flat_all, dim=0)
+        var = torch.var(param_flat_all, dim=0)
+
+
+        return mean, var
