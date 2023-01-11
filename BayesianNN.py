@@ -23,16 +23,18 @@ import tqdm
 import copy
 import typing
 from typing import Sequence, Optional, Callable, Tuple, Dict, Union
+from sklearn.metrics import roc_auc_score
 
 from SGLD import SGLD
 
 
 class BNN_MCMC:
-    def __init__(self, dataset_train, network, prior,
+    def __init__(self, dataset_train, network, prior, Temperature = 1.,
      num_epochs = 300, max_size = 100, burn_in = 100, lr = 1e-3, sample_interval = 1):
         super(BNN_MCMC, self).__init__()
 
         # Hyperparameters and general parameters
+        self.Temperature = Temperature
         self.learning_rate = lr
         self.num_epochs = num_epochs
         self.burn_in = burn_in
@@ -53,7 +55,7 @@ class BNN_MCMC:
         self.network = network
 
         # Set optimizer
-        self.optimizer = SGLD(self.network.parameters(), lr=self.learning_rate, num_data=self.batch_size)
+        self.optimizer = SGLD(self.network.parameters(), lr=self.learning_rate, num_data=self.batch_size, temperature=self.Temperature)
 
         # Scheduler for polynomially decreasing learning rates
         self.scheduler = PolynomialLR(self.optimizer, total_iters = self.num_epochs, power = 0.5)
@@ -164,7 +166,7 @@ class BNN_MCMC:
 
         # accuracy
         accuracy = (class_probs.argmax(axis=1) == y_test).float().mean()
-        return  accuracy #print(f'Test Accuracy: {accuracy.item():.4f}')
+        return  accuracy.numpy()
 
     def test_calibration(self,x):
         # test set
@@ -175,7 +177,25 @@ class BNN_MCMC:
         class_probs = self.predict_probabilities(x_test)
 
         calib_err = calibration_error(class_probs, y_test, n_bins = 30, task = "multiclass", norm="l1", num_classes=10)
-        return calib_err #print(f'Calibration Error: {calib_err.item():.4f}')
+        return calib_err.numpy()
+
+    def test_auroc(self,x):
+        # test set
+        x_test = x[:][0].clone().detach()
+        y_test = x[:][1].clone().detach()         
+
+        # predicted probabilities
+        class_probs = self.predict_probabilities(x_test)
+
+        auroc = roc_auc_score(y_test, class_probs, multi_class='ovr')
+        return auroc
+
+    def get_metrics(self, x):
+        accuracy = self.test_accuracy(x)
+        calib_err = self.test_calibration(x)
+        auroc = self.test_AUROC(x)
+
+        return accuracy, calib_err, auroc
 
     def get_posterior_stats(self):
         self.network.eval()

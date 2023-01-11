@@ -34,7 +34,7 @@ class Isotropic_Gaussian(Prior):
         self.loc = torch.tensor(loc, dtype=torch.float32)
         self.scale = torch.tensor(scale, dtype=torch.float32)
         self.Temperature = torch.tensor(Temperature, dtype=torch.float32)
-        self.name = "Isotropic Gaussian"
+        self.name = "Isotropic_Gaussian"
 
     def log_likelihood(self, values: torch.Tensor) -> torch.Tensor:
         return dist.Normal(self.loc, self.scale).log_prob(values).sum() / self.Temperature
@@ -62,7 +62,7 @@ class Multivariate_Diagonal_Gaussian(Prior):
         self.rho = rho
         self.sigma = torch.log(1 + torch.exp(rho))
         self.Temperature = Temperature
-        self.name = "Multivariate Diagonal Gaussian"
+        self.name = "Multivariate_Diagonal_Gaussian"
 
     def log_likelihood(self, values: torch.Tensor) -> torch.Tensor:
         # TODO: Implement this
@@ -132,7 +132,7 @@ class Gaussian_Mixture(Prior):
         self.scale2 = torch.tensor(scale2, dtype=torch.float32)
         self.mixing_coef = torch.tensor(mixing_coef, dtype=torch.float32)
         self.Temperature = torch.tensor(Temperature, dtype=torch.float32)
-        self.name = "Gaussian Mixture"
+        self.name = "Gaussian_Mixture"
 
     def log_likelihood(self, values: torch.Tensor) -> torch.Tensor:
         p1 = dist.Normal(self.loc1, self.scale1).log_prob(values)
@@ -192,7 +192,7 @@ class Normal_Inverse_Gamma(Prior):
         self.alpha = torch.tensor(alpha, dtype=torch.float32)
         self.beta = torch.tensor(beta, dtype=torch.float32)
         self.Temperature = torch.tensor(Temperature, dtype=torch.float32)
-        self.name = "Normal Inverse Gamma"
+        self.name = "Normal_Inverse_Gamma"
     
 
     def log_likelihood(self, values: torch.Tensor, var = torch.Tensor) -> torch.Tensor:
@@ -291,7 +291,7 @@ class MixedLaplaceUniform(Prior):
         super().__init__()
         self.a = torch.exp(torch.tensor(1))/4
         self.Temperature = Temperature
-        self.name = "Mixed Laplace and Uniform"
+        self.name = "Mixed_Laplace_and_Uniform"
         
     def log_likelihood(self, values: torch.tensor) -> torch.tensor:
         log_likelihoods = torch.where(values < -1, values + torch.log(self.a), torch.where(values <= 1, torch.tensor(np.log(1/4)), -values + torch.log(self.a)))
