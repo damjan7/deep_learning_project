@@ -202,13 +202,26 @@ class Normal_Inverse_Gamma(Prior):
         # manually compute the likelihood
         var = torch.var(values)
 
-        log_like = torch.xlogy(0.5, self.lam / (2 * math.pi * var)) + \
-                    torch.xlogy(self.alpha,self.beta) - \
-                    torch.lgamma(self.alpha) - \
-                    torch.xlogy(self.alpha + 1,var) - \
-                    (2*self.beta + self.lam * (values - self.loc)**2) / (2 * var)
-        
-        return log_like.mean() / self.Temperature
+        #log_like = torch.xlogy(0.5, self.lam / (2 * math.pi * var)) + \
+        #            torch.xlogy(self.alpha,self.beta) - \
+        #            torch.lgamma(self.alpha) - \
+        #            torch.xlogy(self.alpha + 1,var) - \
+        #            (2*self.beta + self.lam * (values - self.loc)**2) / (2 * var)
+        #
+        #return log_like.mean() / self.Temperature
+
+        #new try:
+        # for all pos integers, gamma function:
+        # F(a) = (a-1)!
+
+        var = self.beta / (self.alpha + 1 + 0.5)  # according to formula on wikipedia
+        part1 = self.lam ** 0.5 / (2 * np.pi * var) ** 0.5
+        part2 = self.beta ** self.alpha / np.math.factorial(self.alpha-1)
+        part3 = (1/var) ** (self.alpha + 1)
+        part4 = (-2*self.beta - self.lam * (values - self.mu) ** 0.5) / (2*var)
+        likelihood = part1 * part2 * part3 * np.exp(part4)
+        log_likelihood = np.log(likelihood)
+        return log_likelihood / self.Temperature
 
 
     def sample(self, n) -> torch.Tensor:
