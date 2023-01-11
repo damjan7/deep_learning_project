@@ -69,6 +69,9 @@ class BNN_MCMC:
         progress_bar = trange(self.num_epochs)
 
         N = self.sample_size
+        if self.prior.name == 'Normal Inverse Gamma':
+            n_params = 0
+            SS_params = 0
 
         for _ in progress_bar:
             num_iter += 1
@@ -85,9 +88,21 @@ class BNN_MCMC:
 
                 # Compute the log prior
                 log_prior = 0
-                for name, param in self.network.named_parameters():
-                    if param.requires_grad:
-                        log_prior += self.prior.log_likelihood(param).sum()
+
+                # prior for Normal Inverse Gamma
+                if self.prior.name == 'Normal Inverse Gamma':
+                    param_list = torch.tensor([])
+                    for name, param in self.network.named_parameters():
+                        if param.requires_grad:
+                            param_list = torch.cat((param_list, param.view(-1)))
+                            
+                    current_var = torch.var(param_list)
+                    log_prior += self.prior.log_likelihood(param, current_var).sum()
+
+                else:
+                    for name, param in self.network.named_parameters():
+                        if param.requires_grad:
+                            log_prior += self.prior.log_likelihood(param).sum()
                 
 
                 # Calculate the loss

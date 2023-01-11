@@ -55,10 +55,10 @@ class ConvolutionalNN(nn.Module):
         # Create Network
         self.layers = nn.Sequential(
             nn.Conv2d(in_channels=1, out_channels=64, kernel_size=3, padding=1),
-            nn.ReLU(),
+            nn.ReLU(inplace = True),
             nn.MaxPool2d(kernel_size=2),
             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
-            nn.ReLU(),
+            nn.ReLU(inplace = True),
             nn.MaxPool2d(kernel_size=2),
             nn.Flatten(),
             nn.Linear(64 * 7 * 7, 10))
