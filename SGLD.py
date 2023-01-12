@@ -7,7 +7,7 @@ import numpy as np
 from collections import OrderedDict
 from typing import Sequence, Optional, Callable, Tuple, Dict, Union
 import typing
-from torch.optim import SGD, RMSprop, Adam
+from torch.optim import SGD, RMSprop
 import sys
 
 def dot(a, b):

@@ -3,7 +3,6 @@ This script runs the experiment for our project.
 
 """
 
-
 # Importing libraries ---------------------------------------------------------
 
 import numpy as np

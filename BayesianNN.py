@@ -5,26 +5,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
-from torch.distributions import Normal
-from torch.utils.data import Subset
-from torch.distributions import Categorical, Normal, StudentT
 from torch.optim import SGD
 from torch.optim.lr_scheduler import PolynomialLR
-import torchvision
-from torchvision import datasets, transforms
-import torchmetrics
 from torchmetrics.functional import calibration_error
-import math
-import matplotlib.pyplot as plt
-import random
 from collections import deque, OrderedDict
 from tqdm import trange
-import tqdm
 import copy
-import typing
-from typing import Sequence, Optional, Callable, Tuple, Dict, Union
 from sklearn.metrics import roc_auc_score
-
 from SGLD import SGLD
 
 
