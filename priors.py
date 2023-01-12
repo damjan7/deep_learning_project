@@ -210,19 +210,6 @@ class Normal_Inverse_Gamma(Prior):
         
         return log_likelihood/ self.Temperature
 
-        #new try:
-        # for all pos integers, gamma function:
-        # F(a) = (a-1)!
-
-        #var = self.beta / (self.alpha + 1 + 0.5)  # according to formula on wikipedia
-        #part1 = self.lam ** 0.5 / (2 * np.pi * var) ** 0.5
-        #part2 = self.beta ** self.alpha / np.math.factorial(self.alpha-1)
-        #part3 = (1/var) ** (self.alpha + 1)
-        #part4 = (-2*self.beta - self.lam * (values - self.mu) ** 0.5) / (2*var)
-        #likelihood = part1 * part2 * part3 * np.exp(part4)
-        #log_likelihood = np.log(likelihood)
-        #return log_likelihood / self.Temperature
-
 
     def sample(self, n) -> torch.Tensor:
         # sample variance from inverse gamma and sample x from normal given the variance

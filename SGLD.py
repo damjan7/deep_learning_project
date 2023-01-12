@@ -182,29 +182,35 @@ class SGLD(torch.optim.Optimizer):
             self.state[p]['preconditioner'] = (new_M / min_s)**(-1/4)
 
 
-class SGLD_old(SGD):
-    """Implementation of SGLD algorithm.
-    References
-    ----------
-        
+
+class SGLD_temp(SGD):
     """
+    Implementation of SGLD algorithm with temperature.
+    """
+
+    def __init__(self, params, lr=1e-3, weight_decay=0, momentum=0, temperature=1.0):
+        super(SGLD_temp, self).__init__(params, lr=lr, weight_decay=weight_decay, momentum=momentum)
+        self.Temperature = temperature
+
+
     @torch.no_grad()
     def step(self, closure=None):
         """See `torch.optim.step’."""
         loss = super().step(closure)
         for group in self.param_groups:
             weight_decay = group['weight_decay']
+            temperature = self.Temperature
             for p in group['params']:
                 if p.grad is None:
                     continue
                 grad_p = p.grad.data
-                if weight_decay!=0:
-                    grad_p.add_(alpha=weight_decay,other=p.data)
-                langevin_noise = torch.randn_like(p.data).mul_(group['lr']**0.5)*0.1 #  use weight 0.1 to balance the noise
-                p.data.add_(grad_p,alpha=-0.5*group['lr'])
-                if torch.isnan(p.data).any(): 
+                if weight_decay != 0:
+                    grad_p.add_(alpha=weight_decay, other=p.data)
+                langevin_noise = torch.randn_like(p.data).mul_(group['lr'] ** 0.5) * (self.Temperature ** 0.5)
+                p.data.add_(grad_p, alpha=-0.5 * group['lr'])
+                if torch.isnan(p.data).any():
                     exit('Exist NaN param after SGLD, Try to tune the parameter')
-                if torch.isinf(p.data).any(): 
+                if torch.isinf(p.data).any():
                     exit('Exist Inf param after SGLD, Try to tune the parameter')
                 p.data.add_(langevin_noise)
         return loss

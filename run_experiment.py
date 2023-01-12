@@ -16,7 +16,7 @@ from Networks import *
 from BayesianNN import BNN_MCMC
 
 # Setting seeds ---------------------------------------------------------------
-torch.manual_seed(42)
+torch.manual_seed(0)
 
 
 # Specify the prior -----------------------------------------------------------
@@ -39,7 +39,7 @@ prior = Isotropic_Gaussian()
 networks = {"FCNN": FullyConnectedNN(), "CNN": ConvolutionalNN()}
 
 # Temperature list
-Temperatures = [10., 0.001, 0.01, 0.1, 1., 10.]
+Temperatures = [0.001, 0.01, 0.1, 1.]
 
 
 # sample size list
@@ -75,7 +75,7 @@ for net in networks.keys():
 
             # print iteration info
             print(50*"-")
-            print("Iteration: ", iteration, " of ", len(networks)*len(Temperatures)*len(sample_sizes))
+            print("Iteration: ", iteration + 1, " of ", len(networks)*len(Temperatures)*len(sample_sizes))
             print("Network:     ", net)
             print("Prior:       ", prior.name)
             print("Temperature: ", T)
@@ -103,7 +103,7 @@ for net in networks.keys():
                 prior=prior,
                 Temperature = T,
                 num_epochs = int(args_dict[sample_sizes[n]][0]),
-                max_size = 10,
+                max_size = 20,
                 burn_in = int(args_dict[sample_sizes[n]][1]),
                 lr = 1e-3,
                 sample_interval = int(args_dict[sample_sizes[n]][2]))

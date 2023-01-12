@@ -12,7 +12,7 @@ from collections import deque, OrderedDict
 from tqdm import trange
 import copy
 from sklearn.metrics import roc_auc_score
-from SGLD import SGLD
+from SGLD import *
 
 
 class BNN_MCMC:
@@ -58,7 +58,7 @@ class BNN_MCMC:
         progress_bar = trange(self.num_epochs)
 
         N = self.sample_size
-        if self.prior.name == 'Normal Inverse Gamma':
+        if self.prior.name == 'Normal_Inverse_Gamma':
             n_params = 0
             SS_params = 0
 
