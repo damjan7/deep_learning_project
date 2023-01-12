@@ -109,7 +109,7 @@ for net in networks.keys():
             model.train()
 
             # get test metrics
-            acc, ece, auroc = model.test_metrics(test_data)
+            acc, ece, auroc = model.get_metrics(test_data)
 
             #print("Test accuracy: ", acc)
             #print("Test ECE: ", ece)
