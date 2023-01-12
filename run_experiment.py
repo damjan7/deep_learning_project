@@ -100,6 +100,7 @@ for net in networks.keys():
                 train_data,
                 network = networks[net],
                 prior=prior,
+                Temperature = T,
                 num_epochs = int(args_dict[sample_sizes[n]][0]),
                 max_size = 10,
                 burn_in = int(args_dict[sample_sizes[n]][1]),
