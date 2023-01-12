@@ -79,7 +79,7 @@ class BNN_MCMC:
                 log_prior = 0
 
                 # prior for Normal Inverse Gamma
-                if self.prior.name == 'Normal Inverse Gamma':
+                if self.prior.name == 'Normal_Inverse_Gamma':
                     param_list = torch.tensor([])
                     for name, param in self.network.named_parameters():
                         if param.requires_grad:

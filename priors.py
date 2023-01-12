@@ -87,7 +87,7 @@ class StudentT_prior(Prior):
         self.loc = torch.tensor(loc, dtype=torch.float32)
         self.scale = torch.tensor(scale, dtype=torch.float32)
         self.Temperature = torch.tensor(Temperature, dtype=torch.float32)
-        self.name = "Student-T"
+        self.name = "Student_T"
 
     def log_likelihood(self, values: torch.Tensor) -> torch.Tensor:
         return dist.StudentT(self.df, self.loc, self.scale).log_prob(values).sum() / self.Temperature
@@ -221,7 +221,7 @@ class Normal_Inverse_Gamma(Prior):
         #part4 = (-2*self.beta - self.lam * (values - self.mu) ** 0.5) / (2*var)
         #likelihood = part1 * part2 * part3 * np.exp(part4)
         #log_likelihood = np.log(likelihood)
-        return log_likelihood / self.Temperature
+        #return log_likelihood / self.Temperature
 
 
     def sample(self, n) -> torch.Tensor:
@@ -258,7 +258,7 @@ class GaussianSpikeNSlab(Prior):
         self.loc_spike = torch.tensor(loc_spike, dtype=torch.float32)
         self.scale_spike = torch.tensor(scale_spike, dtype=torch.float32)
         self.Temperature = torch.tensor(Temperature, dtype=torch.float32)
-        self.name = "Gaussian Spike and Slab"
+        self.name = "Gaussian_Spike_and_Slab"
 
         mix = dist.Categorical(probs=torch.tensor([1-self.theta, self.theta]))
         comp = dist.Normal(torch.tensor([self.loc_spike, self.loc_slab]), torch.tensor([self.scale_spike, self.scale_slab]))
