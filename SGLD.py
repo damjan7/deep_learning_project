@@ -208,3 +208,5 @@ class SGLD_old(SGD):
                     exit('Exist Inf param after SGLD, Try to tune the parameter')
                 p.data.add_(langevin_noise)
         return loss
+
+

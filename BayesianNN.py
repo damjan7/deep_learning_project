@@ -193,7 +193,7 @@ class BNN_MCMC:
     def get_metrics(self, x):
         accuracy = self.test_accuracy(x)
         calib_err = self.test_calibration(x)
-        auroc = self.test_AUROC(x)
+        auroc = self.test_auroc(x)
 
         return accuracy, calib_err, auroc
 
