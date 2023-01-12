@@ -16,7 +16,7 @@ from Networks import *
 from BayesianNN import BNN_MCMC
 
 # Setting seeds ---------------------------------------------------------------
-torch.manual_seed(0)
+torch.manual_seed(42)
 
 
 # Specify the prior -----------------------------------------------------------
@@ -36,11 +36,11 @@ prior = Isotropic_Gaussian()
 # Specify the iteration parameters --------------------------------------------
 
 # network list
-networks = {"FCNN": FullyConnectedNN(),
-          "CNN": ConvolutionalNN()}
+networks = {"FCNN": FullyConnectedNN(), "CNN": ConvolutionalNN()}
 
 # Temperature list
-Temperatures = [0.001, 0.01, 0.1, 1, 10]
+Temperatures = [10., 0.001, 0.01, 0.1, 1., 10.]
+
 
 # sample size list
 sample_sizes = [3750, 15000, 60000, 120000]
@@ -72,13 +72,14 @@ for net in networks.keys():
     for T in Temperatures:
         for n in range(len(sample_sizes)):
         
-            """ 
+
             # print iteration info
             print(50*"-")
             print("Iteration: ", iteration, " of ", len(networks)*len(Temperatures)*len(sample_sizes))
             print("Network:     ", net)
             print("Prior:       ", prior.name)
             print("Temperature: ", T)
+            """
             print("Sample size: ", sample_sizes[n])
             print("Epoch:       ", args_dict[sample_sizes[n]][0])
             print("Burn in:     ", args_dict[sample_sizes[n]][1])
@@ -89,7 +90,7 @@ for net in networks.keys():
             if sample_sizes[n] == 120000:
                 # if sample size is 120000, use data augmentation
                 augmentations = tr.Compose([tr.RandomRotation(15)])
-                train_data, test_data = Data("MNIST", augmentations = augmentations).get_data()
+                train_data, test_data = Data("MNIST", augmentations = augmentations).get_data(num_train_samples=sample_sizes[n])
             else:
                 # subsample original train data if sample size is smaller than 120000
                 train_data, test_data = Data("MNIST", augmentations = None).get_data(num_train_samples=sample_sizes[n])

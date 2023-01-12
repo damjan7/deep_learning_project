@@ -37,7 +37,7 @@ class Isotropic_Gaussian(Prior):
         self.name = "Isotropic_Gaussian"
 
     def log_likelihood(self, values: torch.Tensor) -> torch.Tensor:
-        return dist.Normal(self.loc, self.scale).log_prob(values).sum() / self.Temperature
+        return dist.Normal(self.loc, self.scale).log_prob(values).nansum() / self.Temperature
 
     def sample(self, n):
         return dist.Normal(self.loc, self.scale).sample((n,))

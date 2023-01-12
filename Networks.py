@@ -54,14 +54,14 @@ class ConvolutionalNN(nn.Module):
         
         # Create Network
         self.layers = nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=8, kernel_size=3, padding=1),
+            nn.Conv2d(in_channels=1, out_channels=4, kernel_size=3, padding=1),
             nn.ReLU(inplace = True),
             nn.MaxPool2d(kernel_size=2),
-            nn.Conv2d(in_channels=8, out_channels=8, kernel_size=3, padding=1),
+            nn.Conv2d(in_channels=4, out_channels=4, kernel_size=3, padding=1),
             nn.ReLU(inplace = True),
             nn.MaxPool2d(kernel_size=2),
             nn.Flatten(),
-            nn.Linear(8 * 7 * 7, 10))
+            nn.Linear(4 * 7 * 7, 10))
         
     def forward(self, x):
         x = x.view(-1, 1, 28, 28)
