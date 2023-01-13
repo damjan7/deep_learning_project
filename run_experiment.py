@@ -30,7 +30,7 @@ torch.manual_seed(0)
 #       GaussianSpikeNSlab
 #       MixedLaplaceUniform
 
-prior = Isotropic_Gaussian()
+prior = GaussianSpikeNSlab()
 
 
 # Specify the iteration parameters --------------------------------------------
@@ -55,7 +55,9 @@ results = pd.DataFrame(columns = [
     "Temperature", 
     "Test Accuracy", 
     "Test ECE", 
-    "Test AUROC"], 
+    "Test AUROC",
+    "Posterior mean",
+    "Posterior var"],
     index = range(len(networks)*len(Temperatures)*len(sample_sizes)))
 
 
@@ -112,13 +114,14 @@ for net in networks.keys():
 
             # get test metrics
             acc, ece, auroc = model.get_metrics(test_data)
+            post_mean, post_var = model.get_posterior_stats()
 
             #print("Test accuracy: ", acc)
             #print("Test ECE: ", ece)
             #print("Test AUROC: ", auroc)
 
             # save results
-            results.iloc[iteration, :] = net, sample_sizes[n], args_dict[sample_sizes[n]][0], args_dict[sample_sizes[n]][1], args_dict[sample_sizes[n]][2], T, acc, ece, auroc
+            results.iloc[iteration, :] = net, sample_sizes[n], args_dict[sample_sizes[n]][0], args_dict[sample_sizes[n]][1], args_dict[sample_sizes[n]][2], T, acc, ece, auroc, post_mean, post_var
             iteration += 1
 
 # save results to csv
