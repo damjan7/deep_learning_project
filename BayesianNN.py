@@ -15,6 +15,7 @@ from sklearn.metrics import roc_auc_score
 from SGLD import *
 
 
+
 class BNN_MCMC:
     def __init__(self, dataset_train, network, prior, Temperature = 1.,
      num_epochs = 300, max_size = 100, burn_in = 100, lr = 1e-3, sample_interval = 1):
