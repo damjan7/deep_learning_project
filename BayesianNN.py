@@ -42,7 +42,7 @@ class BNN_MCMC:
         self.network = network
 
         # Set optimizer
-        self.optimizer = SGLD(self.network.parameters(), lr=self.learning_rate, num_data=self.batch_size, temperature=self.Temperature)
+        self.optimizer = SGLD(self.network.parameters(), lr=self.learning_rate, num_data=self.sample_size, temperature=self.Temperature)
 
         # Scheduler for polynomially decreasing learning rates
         self.scheduler = PolynomialLR(self.optimizer, total_iters = self.num_epochs, power = 0.5)
@@ -58,9 +58,6 @@ class BNN_MCMC:
         progress_bar = trange(self.num_epochs)
 
         N = self.sample_size
-        if self.prior.name == 'Normal_Inverse_Gamma':
-            n_params = 0
-            SS_params = 0
 
         for _ in progress_bar:
             num_iter += 1
