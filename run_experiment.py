@@ -30,7 +30,7 @@ torch.manual_seed(1)
 #       GaussianSpikeNSlab
 #       MixedLaplaceUniform
 
-prior = StudentT_prior()
+prior = Normal_Inverse_Gamma()
 
 
 # Specify the iteration parameters --------------------------------------------
@@ -76,7 +76,6 @@ for net in networks.keys():
     for T in Temperatures:
         for n in range(len(sample_sizes)):
         
-
             # print iteration info
             print(50*"-")
             print("Iteration: ", iteration + 1, " of ", len(networks)*len(Temperatures)*len(sample_sizes))
