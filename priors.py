@@ -28,16 +28,15 @@ class Isotropic_Gaussian(Prior):
     """
     Isotropic Gaussian prior with mean (loc) and standard deviation (scale) as parameters.
     """
-    def __init__(self, loc: float = 0, scale: float = 1.0, Temperature: float = 1.0):
+    def __init__(self, loc: float = 0, scale: float = 1.0):
         super().__init__()
         assert scale > 0, "Scale must be positive"
         self.loc = torch.tensor(loc, dtype=torch.float32)
         self.scale = torch.tensor(scale, dtype=torch.float32)
-        self.Temperature = torch.tensor(Temperature, dtype=torch.float32)
         self.name = "Isotropic_Gaussian"
 
     def log_likelihood(self, values: torch.Tensor) -> torch.Tensor:
-        return dist.Normal(self.loc, self.scale).log_prob(values).nansum() / self.Temperature
+        return dist.Normal(self.loc, self.scale).log_prob(values).sum() 
 
     def sample(self, n):
         return dist.Normal(self.loc, self.scale).sample((n,))
@@ -56,17 +55,16 @@ class Multivariate_Diagonal_Gaussian(Prior):
     This parameterizes the standard deviation via a parameter rho as
     sigma = softplus(rho).
     """
-    def __init__(self, mu: torch.Tensor, rho: torch.Tensor, Temperature: float = 1.0):
+    def __init__(self, mu: torch.Tensor, rho: torch.Tensor):
         super().__init__()
         self.mu = mu
         self.rho = rho
         self.sigma = torch.log(1 + torch.exp(rho))
-        self.Temperature = Temperature
         self.name = "Multivariate_Diagonal_Gaussian"
 
     def log_likelihood(self, values: torch.Tensor) -> torch.Tensor:
         # TODO: Implement this
-        return dist.Normal(self.mu, self.sigma).log_prob(values).sum() / self.Temperature
+        return dist.Normal(self.mu, self.sigma).log_prob(values).sum() 
 
     def sample(self) -> torch.Tensor:
         # TODO: Implement this
@@ -81,16 +79,15 @@ class StudentT_prior(Prior):
     """
     Student-T Prior with degrees of freedom (df), mean (loc) and scale (scale) as parameters.
     """
-    def __init__(self, df: float = 10, loc: float = 0, scale: float = 1.0, Temperature: float = 1.0):
+    def __init__(self, df: float = 10, loc: float = 0, scale: float = 1.0):
         super().__init__()
         self.df = torch.tensor(df, dtype=torch.float32)
         self.loc = torch.tensor(loc, dtype=torch.float32)
         self.scale = torch.tensor(scale, dtype=torch.float32)
-        self.Temperature = torch.tensor(Temperature, dtype=torch.float32)
         self.name = "Student_T"
 
     def log_likelihood(self, values: torch.Tensor) -> torch.Tensor:
-        return dist.StudentT(self.df, self.loc, self.scale).log_prob(values).sum() / self.Temperature
+        return dist.StudentT(self.df, self.loc, self.scale).log_prob(values).sum()
 
     def sample(self, n):
         return dist.StudentT(self.df, self.loc, self.scale).sample((n,))  
@@ -102,15 +99,14 @@ class Laplace_prior(Prior):
     """
     Laplace Prior with mean (loc) and scale (scale) as parameters.
     """
-    def __init__(self, loc: float = 0, scale: float = 1.0, Temperature: float = 1.0):
+    def __init__(self, loc: float = 0, scale: float = 1.0):
         super().__init__()
         self.loc = torch.tensor(loc, dtype=torch.float32)
         self.scale = torch.tensor(scale, dtype=torch.float32)
-        self.Temperature = torch.tensor(Temperature, dtype=torch.float32)
         self.name = "Laplace"
 
     def log_likelihood(self, values: torch.Tensor) -> torch.Tensor:
-        return dist.Laplace(self.loc, self.scale).log_prob(values).sum() / self.Temperature
+        return dist.Laplace(self.loc, self.scale).log_prob(values).sum()
 
     def sample(self, n) -> torch.Tensor:
         return dist.Laplace(self.loc, self.scale).sample((n,))
@@ -124,20 +120,19 @@ class Gaussian_Mixture(Prior):
     Mixture of two Gaussians with means (loc1, loc2), standard deviations (scale1, scale2) and mixing coefficient (mixing_coef) as parameters.
     """
     def __init__(self, loc1: float = 0, scale1: float = 3.0, loc2: float = 0, scale2: float = 1.0,
-                mixing_coef: float = 0.7, Temperature: float = 1.0):
+                mixing_coef: float = 0.7):
         super().__init__()
         self.loc1 = torch.tensor(loc1, dtype=torch.float32)
         self.loc2 = torch.tensor(loc2, dtype=torch.float32)
         self.scale1 = torch.tensor(scale1, dtype=torch.float32)
         self.scale2 = torch.tensor(scale2, dtype=torch.float32)
         self.mixing_coef = torch.tensor(mixing_coef, dtype=torch.float32)
-        self.Temperature = torch.tensor(Temperature, dtype=torch.float32)
         self.name = "Gaussian_Mixture"
 
     def log_likelihood(self, values: torch.Tensor) -> torch.Tensor:
         p1 = dist.Normal(self.loc1, self.scale1).log_prob(values)
         p2 = dist.Normal(self.loc2, self.scale2).log_prob(values)
-        log_lik = (p1 * self.mixing_coef + p2 * (1-self.mixing_coef)).sum() / self.Temperature
+        log_lik = (p1 * self.mixing_coef + p2 * (1-self.mixing_coef)).sum() 
         return log_lik
 
     def sample(self, n) -> torch.Tensor:
@@ -153,11 +148,10 @@ class Inverse_Gamma(Prior):
     Inverse Gamma distribution with shape (shape) and rate (rate) as parameters.
     This distribution is needed for the Normal Inverse Gamma prior.
     """
-    def __init__(self, shape: float = 1.0, rate: float = 1.0, Temperature: float = 1.0):
+    def __init__(self, shape: float = 1.0, rate: float = 1.0):
         super().__init__()
         self.shape = torch.tensor(shape, dtype=torch.float32)
         self.rate = torch.tensor(rate, dtype=torch.float32)
-        self.Temperature = torch.tensor(Temperature, dtype=torch.float32)
 
     def log_likelihood(self, values: torch.Tensor) -> torch.Tensor:
         """
@@ -179,7 +173,7 @@ class Normal_Inverse_Gamma(Prior):
     """ 
     Normal Inverse Gamma distribution with mean (mu), precision (lam), shape (alpha) and rate (beta) as parameters.
     """
-    def __init__(self, loc: float = 0, lam: float = 1, alpha: float = 1, beta: float = 1, Temperature: float = 1.0):
+    def __init__(self, loc: float = 0, lam: float = 1, alpha: float = 1, beta: float = 1):
         """
         loc: loc of the normal distribution
         lam: precision of the normal distribution
@@ -191,7 +185,6 @@ class Normal_Inverse_Gamma(Prior):
         self.lam = torch.tensor(lam, dtype=torch.float32)
         self.alpha = torch.tensor(alpha, dtype=torch.float32)
         self.beta = torch.tensor(beta, dtype=torch.float32)
-        self.Temperature = torch.tensor(Temperature, dtype=torch.float32)
         self.name = "Normal_Inverse_Gamma"
     
 
@@ -208,7 +201,7 @@ class Normal_Inverse_Gamma(Prior):
                     torch.xlogy(self.alpha + 1,var) - \
                     (2*self.beta + self.lam * (values - self.loc)**2) / (2 * var)
         
-        return log_likelihood/ self.Temperature
+        return log_likelihood
 
 
     def sample(self, n) -> torch.Tensor:
@@ -230,7 +223,7 @@ class GaussianSpikeNSlab(Prior):
     p_theta(x) = theta * p_spike(x) + (1-theta) * p_slab(x)
     """
 
-    def __init__(self, loc_slab: float = 0, scale_slab: float = 1, loc_spike: float = 0, scale_spike: float = 1e-16, theta: float = 0.8, Temperature: float = 1.0):
+    def __init__(self, loc_slab: float = 0, scale_slab: float = 1, loc_spike: float = 0, scale_spike: float = 1e-16, theta: float = 0.8):
         """
         loc_slab: mean of the normal distribution
         scale_slab: standard deviation of the normal distribution
@@ -244,7 +237,6 @@ class GaussianSpikeNSlab(Prior):
         self.scale_slab = torch.tensor(scale_slab, dtype=torch.float32)
         self.loc_spike = torch.tensor(loc_spike, dtype=torch.float32)
         self.scale_spike = torch.tensor(scale_spike, dtype=torch.float32)
-        self.Temperature = torch.tensor(Temperature, dtype=torch.float32)
         self.name = "Gaussian_Spike_and_Slab"
 
         mix = dist.Categorical(probs=torch.tensor([1-self.theta, self.theta]))
@@ -252,7 +244,7 @@ class GaussianSpikeNSlab(Prior):
         self.spike_n_slab = dist.MixtureSameFamily(mix, comp) 
 
     def log_likelihood(self, values: torch.Tensor) -> torch.Tensor:
-        return self.spike_n_slab.log_prob(values).sum() / self.Temperature
+        return self.spike_n_slab.log_prob(values).sum() 
 
     def sample(self,n) -> torch.Tensor:
         return self.spike_n_slab.sample((n,))
@@ -274,15 +266,14 @@ class MixedLaplaceUniform(Prior):
     we use a Uniform fistribution in the middle within interval [-1, 1] and a Laplace distribution at the sides.
     The distribution is continuous. 
     """
-    def __init__(self, Temperature:float=1.0):
+    def __init__(self,):
         super().__init__()
         self.a = torch.exp(torch.tensor(1))/4
-        self.Temperature = Temperature
         self.name = "Mixed_Laplace_and_Uniform"
         
     def log_likelihood(self, values: torch.tensor) -> torch.tensor:
         log_likelihoods = torch.where(values < -1, values + torch.log(self.a), torch.where(values <= 1, torch.tensor(np.log(1/4)), -values + torch.log(self.a)))
-        return log_likelihoods.sum() / self.Temperature
+        return log_likelihoods.sum() 
 
     def sample(self, size=1) -> torch.tensor:
         """Generates samples from the mixed probability distribution."""

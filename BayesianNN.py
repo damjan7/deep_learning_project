@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torch.optim import SGD
-from torch.optim.lr_scheduler import PolynomialLR
+from torch.optim.lr_scheduler import PolynomialLR, StepLR
 from torchmetrics.functional import calibration_error
 from collections import deque, OrderedDict
 from tqdm import trange
@@ -43,10 +43,11 @@ class BNN_MCMC:
         self.network = network
 
         # Set optimizer
-        self.optimizer = SGLD(self.network.parameters(), lr=self.learning_rate, num_data=self.sample_size, temperature=self.Temperature)
+        self.optimizer = SGLD(self.network.parameters(), lr=self.learning_rate, num_data=self.sample_size, 
+        temperature=self.Temperature, raise_on_nan=True)
 
         # Scheduler for polynomially decreasing learning rates
-        self.scheduler = PolynomialLR(self.optimizer, total_iters = self.num_epochs, power = 0.5)
+        self.scheduler = StepLR(self.optimizer, step_size = 1, gamma = 0.5)
 
         # Deque to store model samples
         self.model_sequence = deque()
@@ -111,13 +112,15 @@ class BNN_MCMC:
                     log_prior_normalized = - log_prior.item(),
                     lr = self.optimizer.param_groups[0]['lr'])
 
-            # Decrease lr based on scheduler
-            self.scheduler.step()
+            # Decrease lr based on scheduler after each sampling interval. Like this, the lr decreases equally for each network in the evaluation  
+            if num_iter % self.sample_interval == 0:
+                self.scheduler.step()
             
             # Save the model samples if past the burn-in epochs according to sampling interval
             if num_iter > self.burn_in and num_iter % self.sample_interval == 0:
                 self.model_sequence.append(copy.deepcopy(self.network))
                 # self.network.state_dict()
+
 
             # If model_sequence to big, delete oldest model
             if len(self.model_sequence) > self.max_size:
@@ -196,8 +199,7 @@ class BNN_MCMC:
         param_flat_all = torch.cat(param_flat_all)
 
         # get mean and variance
-        mean = torch.mean(param_flat_all, dim=0)
-        var = torch.var(param_flat_all, dim=0)
-
+        mean = torch.mean(param_flat_all, dim=0).numpy()
+        var = torch.var(param_flat_all, dim=0).numpy()
 
         return mean, var
